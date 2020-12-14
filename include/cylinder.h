@@ -58,32 +58,30 @@ public:
 			float angle = glm::radians((float)i);
 			glm::vec3 dir = glm::vec3(0.0f, glm::cos(angle), glm::sin(angle));
 			vertex1.Position = leftCenterPos + dir * radius;
-		//	vertex1.Normal = glm::normalize(dir + glm::vec3(-1.0f, 0.0f, 0.0f));
 			vertex1.Normal = glm::normalize(dir);
 			vertex1.TexCoords = glm::vec2(leftCenterPos.x, (float)angle * radius);
+		//	cout << angle << endl;
 			vertex2.Position = vertex1.Position + glm::vec3(d, 0.0f, 0.0f);
-		//	vertex2.Normal = glm::normalize(dir + glm::vec3(1.0f, 0.0f, 0.0f));
 			vertex2.Normal = glm::normalize(dir);
 			vertex2.TexCoords = glm::vec2(leftCenterPos.x + d, (float)angle * radius);
 			vertices.push_back(vertex1);
 			vertices.push_back(vertex2);
 
-
-	//		cout << vertex1.TexCoords.x << "," << vertex1.TexCoords.y <<  endl;
-	//		cout << vertex2.TexCoords.x << "," << vertex2.TexCoords.y << endl;
-	//		cout << "hello" << endl;
 		}
 		
-
-		for (int i = 0; i + 2 < num; i++) {
+		for (int i = 0; i < 2 * num; i++) {
 			indices.push_back(i);
-			indices.push_back(i + 1);
-			indices.push_back(i + 2);
+			indices.push_back((i + 1) % (2 * num));
+			indices.push_back((i + 2) % (2 * num));
 		}
 
 		vector<Texture> textures;
 		this->sideMesh = Mesh(vertices, indices, textures);
 
+		for (int i = 0; i < num; i++) {
+			vertices[i * 2].Normal = glm::vec3(-1.0f, 0.0f, 0.0f);
+			vertices[i * 2 + 1].Normal = glm::vec3(1.0f, 0.0f, 0.0f);
+		}
 
 		Vertex leftCenter, rightCenter;
 		leftCenter.Position = leftCenterPos;
@@ -95,16 +93,18 @@ public:
 		vertices.push_back(leftCenter); vertices.push_back(rightCenter);
 		indices.clear();
 
-		for (int i = 0; i < num; i += 2) {
+		for (int i = 0; i < num; i ++) {
 			indices.push_back(i * 2);
-			indices.push_back((i + 1) * 2);
-			indices.push_back(num);
+			indices.push_back(((i + 1) % num) * 2);
+			indices.push_back(2 * num);
+			//cout << vertices[i * 2].Position.x << vertices[i * 2].Position.y << vertices[i * 2].Position.z << endl;
+			//cout << vertices[i * 2 + 2].Position.x << vertices[i * 2 + 2].Position.y << vertices[i * 2 + 2].Position.z << endl;
+			//cout << vertices[num].Posi
 
 			indices.push_back(i * 2 + 1);
-			indices.push_back((i + 1) * 2 + 1);
-			indices.push_back(num + 1);
+			indices.push_back(((i + 1) % num) * 2 + 1);
+			indices.push_back(2 * num + 1);
 		}
-
 		this->sectionMesh = Mesh(vertices, indices, textures);
 
 	}

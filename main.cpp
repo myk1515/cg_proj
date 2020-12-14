@@ -21,9 +21,9 @@ void processInput(GLFWwindow* window);
 #define interval_d 0.01f
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 lightPos(1.2f, 20.0f, 1.0f);
 
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 0.0f, 10.0f));
 float lastX = WINDOW_WIDTH / 2.0f;
 float lastY = WINDOW_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -140,19 +140,23 @@ public:
 		this->radius = radius;
 		this->leftCenterPos = leftCenterPos;
 
-		loadTexture(&sideMaterial.diffuse, "./material/" + material + "Section.jpg");
-		loadTexture(&sectionMaterial.diffuse, "./material/" + material + "Side.jpg");
+		loadTexture(&sideMaterial.diffuse, "./material/" + material + "Side.jpg");
+		loadTexture(&sectionMaterial.diffuse, "./material/" + material + "Section.jpg");
 		if (material == "metal") {
 			sideMaterial.specular = sectionMaterial.specular = glm::vec3(1.0f, 1.0f, 1.0f);
 			sideMaterial.shinness = sectionMaterial.shinness = 32.0f;
 		}
 		else {
-			sideMaterial.specular = sectionMaterial.specular = glm::vec3(1.0f, 1.0f, 1.0f);
-			sideMaterial.shinness = sectionMaterial.shinness = 32.0f;
+			sideMaterial.specular = sectionMaterial.specular = glm::vec3(0.0f, 0.0f, 0.0f);
+			sideMaterial.shinness = sectionMaterial.shinness = 2.0f;
 		}
 
 		for (float delta = 0; delta < length; delta += interval_d) {
-			cylinders.push_back(Cylinder(radius, leftCenterPos + glm::vec3(delta, 0.0f, 0.0f), interval_d, sideMaterial, sectionMaterial));
+			double test = delta / 10;
+		//	if (((int)delta % 2) == 0)
+		//		test = 1;
+
+			cylinders.push_back(Cylinder(radius + test, leftCenterPos + glm::vec3(delta, 0.0f, 0.0f), interval_d, sideMaterial, sectionMaterial));
 		}
 
 	}
@@ -199,7 +203,7 @@ int main() {
 
 
 	Shader workpieceShader("./shaders/vs.shader", "./shaders/fs.shader");
-	Workpiece workpiece = Workpiece(10.0f, 1.0f, glm::vec3(1.0f, 0.0f, 0.0f), "wood");
+	Workpiece workpiece = Workpiece(3.0f, 0.2f, glm::vec3(-1.5f, 0.0f, 0.0f), "wood");
 
 
 	unsigned int object_VAO, light_VAO;
@@ -231,6 +235,7 @@ int main() {
 		projection = glm::perspective(glm::radians(45.0f), (float)WINDOW_WIDTH / WINDOW_HEIGHT, 0.1f, 100.0f);
 
 		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::rotate(model, (float)glfwGetTime() * 10, glm::vec3(1.0f, 0.0f, 0.0f));
 		workpieceShader.use();
 		workpieceShader.setMat4("model", model);
 		glm::mat4 normalMat = glm::mat3(glm::transpose(glm::inverse(model)));

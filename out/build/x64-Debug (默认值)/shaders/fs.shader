@@ -16,15 +16,15 @@ void main() {
     vec3 diffuse = vec3(texture(texture_diffuse, TexCoords));
 
     vec3 lightColor = vec3(1.0, 1.0, 1.0);
-    float ambientStrength = 0.3;
-  //  vec3 ambientVec = ambientStrength * lightColor * diffuse ;
-    vec3 ambientVec = lightColor * diffuse;
+    float ambientStrength = 0.5;
+    vec3 ambientVec = ambientStrength * lightColor * diffuse ;
 
     vec3 norm = normalize(Normal);
     vec3 lightDir = normalize(lightPos - FragPos);
     
+    float diffuseStrength = 0.7;
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuseVec = diff * lightColor * diffuse;
+    vec3 diffuseVec = diffuseStrength * diff * lightColor * diffuse;
 
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 reflectDir = reflect(-lightDir, norm);
