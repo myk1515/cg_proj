@@ -10,20 +10,20 @@
 #include "include/shader.h"
 #include "include/camera.h"
 #include "include/model.h"
-#include "cylinder.h"
-
+#include "include/cylinder.h"
+#include "include/knife.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 
-#define interval_d 0.01f
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 glm::vec3 lightPos(1.2f, 20.0f, 1.0f);
 
 Camera camera(glm::vec3(0.0f, 0.0f, 10.0f));
+Knife knife(glm::vec3(1.0f, 0.0f, 1.0f), glm::vec3(1.0f, 0.0f, 2.0f), glm::vec3(2.0f, 0.0f, 2.0f));
 float lastX = WINDOW_WIDTH / 2.0f;
 float lastY = WINDOW_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -32,79 +32,7 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-
-
-
-
-
-void loadCube(unsigned int object_VAO, unsigned int light_VAO) {
-	float vertices[] = {
-	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-	 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
-	 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-	 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-	-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-
-	-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,  0.0f, 0.0f,
-	 0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,  1.0f, 0.0f,
-	 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,  1.0f, 1.0f,
-	 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,  1.0f, 1.0f,
-	-0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,  0.0f, 1.0f,
-	-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,  0.0f, 0.0f,
-
-	-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-	-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-	-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-	-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-	-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-	-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-	 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-	 0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-	 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-	 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-	 0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-	 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-	-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-	 0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
-	 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-	 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-	-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-
-	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
-	 0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-	 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-	 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-	-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-	-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
-	};
-
-	unsigned int VBO;
-	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-
-	glBindVertexArray(object_VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-	glEnableVertexAttribArray(2);
-
-	glBindVertexArray(light_VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-}
-
-
-
+#define interval_d 0.01f
 
 
 class Workpiece {
@@ -153,8 +81,6 @@ public:
 
 		for (float delta = 0; delta < length; delta += interval_d) {
 			double test = delta / 10;
-		//	if (((int)delta % 2) == 0)
-		//		test = 1;
 
 			cylinders.push_back(Cylinder(radius + test, leftCenterPos + glm::vec3(delta, 0.0f, 0.0f), interval_d, sideMaterial, sectionMaterial));
 		}
@@ -168,6 +94,29 @@ public:
 		}
 	}
 
+	void cut(Head head) {
+		int size = cylinders.size();
+		glm::vec3 h = head.h, p1 = head.p1, p2 = head.p2;
+		for (int i = 0; i < size; i++) {
+			float z_prime;
+			bool collision = false;
+			float cur_x = leftCenterPos.x + interval_d * i;
+			if (cur_x >= p1.x && cur_x <= p2.x) {
+				if (h.x != p1.x) {
+					z_prime = (h.z - p1.z) / (h.x - p1.x) * (cur_x - h.x) + h.z;
+				}
+				else {
+					z_prime = (h.z - p2.z) / (h.x - p2.x) * (cur_x - h.x) + h.z;
+				}
+				if (z_prime < cylinders[i].radius) {
+					cylinders[i].uncut = false;
+					cylinders[i].setRadius(z_prime);
+					//		cout << "z_prime: " << z_prime << endl;
+				}
+			}
+		}
+	}
+
 };
 
 
@@ -177,7 +126,7 @@ int main() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_SAMPLES, 4);
-
+	
 	GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "CG_project", NULL, NULL);
 	if (window == NULL) {
 		std::cout << "Failed to create GLFW window" << std::endl;
@@ -202,22 +151,14 @@ int main() {
 	// tell GLFW to capture our mouse
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-
-	Shader workpieceShader("./shaders/vs.shader", "./shaders/fs.shader");
-	Workpiece workpiece = Workpiece(3.0f, 0.2f, glm::vec3(-1.5f, 0.0f, 0.0f), "wood");
-
-
-	unsigned int object_VAO, light_VAO;
-	glGenVertexArrays(1, &object_VAO);
-	glGenVertexArrays(1, &light_VAO);
-
-	loadCube(object_VAO, light_VAO);
-
-
-
-
 	glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEPTH_TEST);
+
+
+
+	Shader workpieceShader("./shaders/vs.shader", "./shaders/fs.shader");
+	Shader testShader("./shaders/test.vs", "./shaders/test.fs");
+	Workpiece workpiece = Workpiece(3.0f, 0.2f, glm::vec3(-1.5f, 0.0f, 0.0f), "wood");
 
 	while (!glfwWindowShouldClose(window)) {
 
@@ -229,14 +170,13 @@ int main() {
 		//use
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		workpiece.cut(knife.head);
 
 		glm::mat4 view = camera.GetViewMatrix();
-
 		glm::mat4 projection;
 		projection = glm::perspective(glm::radians(45.0f), (float)WINDOW_WIDTH / WINDOW_HEIGHT, 0.1f, 100.0f);
-
 		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::rotate(model, (float)glfwGetTime() * 10, glm::vec3(1.0f, 0.0f, 0.0f));
+		model = glm::rotate(model, (float)glfwGetTime() * 50, glm::vec3(1.0f, 0.0f, 0.0f));
 		workpieceShader.use();
 		workpieceShader.setMat4("model", model);
 		glm::mat4 normalMat = glm::mat3(glm::transpose(glm::inverse(model)));
@@ -249,18 +189,31 @@ int main() {
 
 		workpiece.draw(workpieceShader);
 
-		glBindVertexArray(object_VAO);
+		unsigned int VAO;
 
-		//glActiveTexture(GL_TEXTURE0);
-		//glUniform1i(glGetUniformLocation(workpieceShader.ID, "texture_diffuse"), 0);
-		//glBindTexture(GL_TEXTURE_2D, workpiece.sideMaterial.diffuse);
-
-		//workpieceShader.setVec3("specular", workpiece.sideMaterial.specular);
-		//workpieceShader.setFloat("shinness", workpiece.sideMaterial.shinness);
-
-
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-
+		float vertices[] = {
+			1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+			1.0f, 0.0f, 2.0f, 0.0f, 1.0f, 0.0f,
+			2.0f, 0.0f, 2.0f, 0.0f, 0.0f, 1.0f,
+		};
+		glGenVertexArrays(1, &VAO);
+		glBindVertexArray(VAO);
+		unsigned int VBO;
+		glGenBuffers(1, &VBO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+		glEnableVertexAttribArray(1);
+		testShader.use();
+		model = glm::mat4(1.0f);
+		model = knife.shift * model;
+		testShader.setMat4("model", model);
+		testShader.setMat4("projection", projection);
+		testShader.setMat4("view", view);
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -286,6 +239,15 @@ void processInput(GLFWwindow* window)
 		camera.ProcessKeyboard(LEFT, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera.ProcessKeyboard(RIGHT, deltaTime);
+
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+		knife.ProcessKeyboard(Knife::FORWARD, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		knife.ProcessKeyboard(Knife::BACKWARD, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+		knife.ProcessKeyboard(Knife::LEFT, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+		knife.ProcessKeyboard(Knife::RIGHT, deltaTime);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes

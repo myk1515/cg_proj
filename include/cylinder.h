@@ -31,14 +31,15 @@ class Cylinder{
 private:
 	Mesh sideMesh;
 	Mesh sectionMesh;
-	float radius;
 	glm::vec3 leftCenterPos;
 	float d;
-	unsigned int sideTexture;
 	Material sideMaterial,sectionMaterial;
 public:
+	float radius;
+	bool uncut;
 	Cylinder(float radius, glm::vec3 leftCenterPos, float d, Material sideMaterial, Material sectionMaterial) {
 		this->radius = radius;
+		this->uncut = true;
 		this->leftCenterPos = leftCenterPos;
 		this->d = d;
 		this->sideMaterial = sideMaterial;
@@ -50,6 +51,9 @@ public:
 	//generate the vertices
 	void setRadius(float radius) {
 		int num = 360;
+		if (!uncut) {
+			sideMaterial = sectionMaterial;
+		}
 		this->radius = radius;
 		vector<Vertex> vertices;
 		vector<unsigned int> indices;
@@ -131,5 +135,8 @@ public:
 		this->sectionMesh.Draw(shader);
 	}
 };
+
+
+
 
 #endif
