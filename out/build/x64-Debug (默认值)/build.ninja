@@ -59,6 +59,14 @@ build CMakeFiles\CG_OpenGL.dir\External\glad-c\src\glad.c.obj: C_COMPILER__CG_Op
   TARGET_COMPILE_PDB = CMakeFiles\CG_OpenGL.dir\
   TARGET_PDB = CG_OpenGL.pdb
 
+build CMakeFiles\CG_OpenGL.dir\bezier.cpp.obj: CXX_COMPILER__CG_OpenGL_Debug ..\..\..\bezier.cpp || cmake_object_order_depends_target_CG_OpenGL_Debug
+  FLAGS = /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -MDd
+  INCLUDES = -I..\..\..\External\glfw-master\include -I..\..\..\External\glad-c\include -I..\..\..\External\glm-0.9.9.7 -I..\..\..\External\assimp-5.0.1\include -IExternal\assimp-5.0.1\include -I..\..\..\include -I..\..\..\External\assimp-5.0.1\code\..\include -IExternal\assimp-5.0.1\code\..\include
+  OBJECT_DIR = CMakeFiles\CG_OpenGL.dir
+  OBJECT_FILE_DIR = CMakeFiles\CG_OpenGL.dir
+  TARGET_COMPILE_PDB = CMakeFiles\CG_OpenGL.dir\
+  TARGET_PDB = CG_OpenGL.pdb
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target CG_OpenGL
@@ -67,7 +75,7 @@ build CMakeFiles\CG_OpenGL.dir\External\glad-c\src\glad.c.obj: C_COMPILER__CG_Op
 #############################################
 # Link the executable CG_OpenGL.exe
 
-build CG_OpenGL.exe: CXX_EXECUTABLE_LINKER__CG_OpenGL_Debug CMakeFiles\CG_OpenGL.dir\main.cpp.obj CMakeFiles\CG_OpenGL.dir\External\glad-c\src\glad.c.obj | External\glfw-master\src\glfw3.lib External\assimp-5.0.1\code\assimp-vc142-mt.lib C$:\Users\myk1515\anaconda3\Library\lib\z.lib External\assimp-5.0.1\contrib\irrXML\IrrXML.lib || External\assimp-5.0.1\code\assimp-vc142-mt.lib External\assimp-5.0.1\contrib\irrXML\IrrXML.lib External\glfw-master\src\glfw3.lib
+build CG_OpenGL.exe: CXX_EXECUTABLE_LINKER__CG_OpenGL_Debug CMakeFiles\CG_OpenGL.dir\main.cpp.obj CMakeFiles\CG_OpenGL.dir\External\glad-c\src\glad.c.obj CMakeFiles\CG_OpenGL.dir\bezier.cpp.obj | External\glfw-master\src\glfw3.lib External\assimp-5.0.1\code\assimp-vc142-mt.lib C$:\Users\myk1515\anaconda3\Library\lib\z.lib External\assimp-5.0.1\contrib\irrXML\IrrXML.lib || External\assimp-5.0.1\code\assimp-vc142-mt.lib External\assimp-5.0.1\contrib\irrXML\IrrXML.lib External\glfw-master\src\glfw3.lib
   FLAGS = /DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -MDd
   LINK_FLAGS = /machine:x64 /debug /INCREMENTAL /subsystem:console
   LINK_LIBRARIES = External\glfw-master\src\glfw3.lib  External\assimp-5.0.1\code\assimp-vc142-mt.lib  C:\Users\myk1515\anaconda3\Library\lib\z.lib  External\assimp-5.0.1\contrib\irrXML\IrrXML.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib
