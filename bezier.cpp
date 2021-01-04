@@ -11,6 +11,10 @@ BezierCurve::BezierCurve(glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 d) {
 	//glGenVertexArrays(1, &VAO);
 }
 
+BezierCurve::BezierCurve() {
+
+}
+
 void BezierCurve::drawPoint(Shader& shader) {
 	float delta = 0.03f;
 	int size = controlPoints.size();
@@ -90,7 +94,7 @@ glm::vec3 BezierCurve::sample(float t) {
 	while (points.size() != 1) {
 		std::vector<glm::vec3> temp;
 		for (int i = 0; i < points.size() - 1; i++) {
-			temp.push_back(t * points[i] + (1.0f - t) * points[i + 1]);
+			temp.push_back((1.0f - t) * points[i] + t * points[i + 1]);
 		}
 		points = temp;
 	}

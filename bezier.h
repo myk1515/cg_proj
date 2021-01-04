@@ -1,3 +1,5 @@
+#ifndef BEZIER_H
+#define BEZIER_H
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -16,9 +18,12 @@ private:
 	float vertices[1000];
 public:
 	BezierCurve(glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 d);
+	BezierCurve();
 	void drawPoint(Shader& shader);
 	void drawCurve(Shader& shader);
 	void ProcessMouseMovement(float x, float y);
 	void setInverseMat(glm::mat4 inverseMat);
 	glm::vec3 sample(float t);
 };
+
+#endif

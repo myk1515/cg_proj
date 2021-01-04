@@ -5,37 +5,45 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <time.h> 
 #include <iostream>
+#include <stdlib.h>
 
 #include "include/shader.h"
 #include "include/camera.h"
-#include "include/model.h"
 #include "cylinder.h"
 #include "knife.h"
 #include "bezier.h"
+#include "particle.h"
+#include "skybox.h"
+#include "workpiece.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-
+     
 int window_width,window_height;
 bool mouse_press = false;
 const float init_radius = 0.5f;
 const float init_length = 5.0f;
+float auto_mode_t = 0.0f;
+std::string material = "metal";
 
 const enum work_mode {
-	FREE, DRAW_BEZIER, CUT_BEZIER
+	FREE, DRAW_BEZIER, AUTO_CUT
 };
-work_mode current_mode = work_mode::DRAW_BEZIER;
+work_mode current_mode = work_mode::FREE;
 
-glm::vec3 lightPos(0.0f, 20.0f, 1.0f);
+glm::vec3 lightPos(4.0f, 20.0f, 1.0f);
 
 Camera camera(glm::vec3(0.0f, 3.5f, 5.0f), glm::normalize(glm::vec3(0.0f, 5.0f, -3.5f)));
 Camera curveCamera(glm::vec3(0.0f, 0.0f, 5.0f));
-Knife knife = Knife(glm::vec3(1.0f, 0.0f, 1.0f), glm::vec3(1.0f, 0.0f, 2.0f), glm::vec3(2.0f, 0.0f, 2.0f));
-BezierCurve bezierCurve = BezierCurve(glm::vec3(-init_length / 2, 0.0f, 0.0f), glm::vec3(-init_length / 4, 0.0f, 0.0f), glm::vec3(init_length / 4, 0.0f, 0.0f), glm::vec3(init_length / 2, 0.0f, 0.0f));
+Knife knife;
+BezierCurve bezierCurve;
+Workpiece workpiece;
+Skybox skybox;
 float lastX = window_width / 2.0f;
 float lastY = window_height / 2.0f;
 bool firstMouse = true;
@@ -44,90 +52,10 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-#define interval_d 0.01f
 
 
-class Workpiece {
-private:
-	float length;
-	glm::vec3 leftCenterPos;
-	float radius;
-	vector<Cylinder> cylinders;
 
-	void loadTexture(unsigned int* texture, std::string path) {
-		glGenTextures(1, texture);
-		glBindTexture(GL_TEXTURE_2D, *texture);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		int width, height, nrChannels;
-		unsigned char* data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
-		if (data) {
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-			glGenerateMipmap(GL_TEXTURE_2D);
-		}
-		else {
-			std::cout << "Failed to load texture" << std::endl;
-		}
-		stbi_image_free(data);
-	}
-public:
-	Material sideMaterial, sectionMaterial;
-	Workpiece(float length, float radius, glm::vec3 leftCenterPos, std::string material) {
-		this->length = length;
-		this->radius = radius;
-		this->leftCenterPos = leftCenterPos;
-
-		loadTexture(&sideMaterial.diffuse, "./material/" + material + "Side.jpg");
-		loadTexture(&sectionMaterial.diffuse, "./material/" + material + "Section.jpg");
-		if (material == "metal") {
-			sideMaterial.specular = sectionMaterial.specular = glm::vec3(1.0f, 1.0f, 1.0f);
-			sideMaterial.shinness = sectionMaterial.shinness = 32.0f;
-		}
-		else {
-			sideMaterial.specular = sectionMaterial.specular = glm::vec3(0.0f, 0.0f, 0.0f);
-			sideMaterial.shinness = sectionMaterial.shinness = 2.0f;
-		}
-
-		for (float delta = 0; delta < length; delta += interval_d) {
-			cylinders.push_back(Cylinder(radius, leftCenterPos + glm::vec3(delta, 0.0f, 0.0f), interval_d, sideMaterial, sectionMaterial));
-		}
-
-	}
-
-	void draw(Shader& shader) {
-		int size = cylinders.size();
-		for (int i = 0; i < size; i++) {
-			cylinders[i].draw(shader);
-		}
-	}
-
-	void cut(Head head) {
-		int size = cylinders.size();
-		glm::vec3 h = head.h, p1 = head.p1, p2 = head.p2;
-		for (int i = 0; i < size; i++) {
-			float z_prime;
-			bool collision = false;
-			float cur_x = leftCenterPos.x + interval_d * i;
-			if (cur_x >= p1.x && cur_x <= p2.x) {
-				if (h.x != p1.x) {
-					z_prime = (h.z - p1.z) / (h.x - p1.x) * (cur_x - h.x) + h.z;
-				}
-				else {
-					z_prime = (h.z - p2.z) / (h.x - p2.x) * (cur_x - h.x) + h.z;
-				}
-				if (z_prime < cylinders[i].radius) {
-					cylinders[i].uncut = false;
-					cylinders[i].setRadius(z_prime);
-					//		cout << "z_prime: " << z_prime << endl;
-				}
-			}
-		}
-	}
-
-};
 
 
 void drawBezierMode(GLFWwindow* window, Shader& curveShader) {
@@ -223,14 +151,83 @@ void drawBezierMode(GLFWwindow* window, Shader& curveShader) {
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
+void autoStride() {
+	float stride = 0.0005;
+	glm::vec3 curPos = bezierCurve.sample(auto_mode_t);
+	glm::vec3 nextPos = bezierCurve.sample(auto_mode_t + stride);
+	auto_mode_t += stride;
+	float delta_x = nextPos.x - curPos.x;
+	float delta_z = nextPos.y - curPos.y;
+	knife.move(Knife::BACKWARD, delta_z);
+	knife.move(Knife::RIGHT, delta_x);
+}
+
+void cutMode(GLFWwindow* window, Shader& workpieceShader, Shader& particleShader, Shader& testShader, Shader&skyboxShader) {
+	float currentFrame = glfwGetTime();
+	deltaTime = currentFrame - lastFrame;
+	lastFrame = currentFrame;
+	processInput(window);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	//use
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	if (current_mode == AUTO_CUT) {
+		if (auto_mode_t <= 1.0f) {
+			autoStride();
+		}
+	}
+	workpiece.cut(knife.head);
+
+	glm::mat4 view = camera.GetViewMatrix();
+	glm::mat4 projection;
+	projection = glm::perspective(glm::radians(45.0f), (float)window_width / window_height, 0.1f, 100.0f);
+	glm::mat4 model = glm::mat4(1.0f);
+	model = glm::rotate(model, (float)glfwGetTime() * 50, glm::vec3(1.0f, 0.0f, 0.0f));
+	workpieceShader.use();
+	workpieceShader.setMat4("model", model);
+	glm::mat4 normalMat = glm::mat3(glm::transpose(glm::inverse(model)));
+	workpieceShader.setMat4("view", view);
+	workpieceShader.setMat4("projection", projection);
+	workpieceShader.setVec3("lightPos", lightPos);
+	workpieceShader.setMat3("normalMat", normalMat);
+	workpieceShader.setVec3("viewPos", camera.Position);
+	particleShader.use();
+	particleShader.setMat4("model", glm::mat4(1.0f));
+	particleShader.setMat4("view", view);
+	particleShader.setMat4("projection", projection);
+	particleShader.setVec3("lightPos", lightPos);
+	particleShader.setMat3("normalMat", normalMat);
+	particleShader.setVec3("viewPos", camera.Position);
+
+	workpiece.draw(workpieceShader, particleShader);
+
+	testShader.use();
+	model = glm::mat4(1.0f);
+	model = knife.shift * model;
+	testShader.setMat4("model", model);
+	testShader.setMat4("projection", projection);
+	testShader.setMat4("view", view);
+	knife.draw(testShader);
+
+
+	skyboxShader.use();
+	model = glm::mat4(1.0f);
+	model = glm::rotate(model, glm::radians(-15.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	model = glm::translate(model, glm::vec3(0.0f, -20.0f, 5.0f));
+	skyboxShader.setMat4("model", model);
+	skyboxShader.setMat4("view", view);
+	skyboxShader.setMat4("projection", projection);
+	skybox.draw(skyboxShader);
+}
+
 int main() {
+	srand((unsigned)time(NULL));
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	
-
 	GLFWmonitor* pMonitor = glfwGetPrimaryMonitor();
 	const GLFWvidmode* mode = glfwGetVideoMode(pMonitor);
 	window_width = mode->width * 0.8;
@@ -266,65 +263,19 @@ int main() {
 
 
 
-	Shader workpieceShader("./shaders/vs.shader", "./shaders/fs.shader");
+	Shader workpieceShader("./shaders/mainShader.vs", "./shaders/mainShader.fs");
+	Shader particleShader("./shaders/mainShader.vs", "./shaders/mainShader.fs");
 	Shader testShader("./shaders/test.vs", "./shaders/test.fs");
-	Shader curveShader("./shaders/curve_shader.vs", "./shaders/curve_shader.fs");
-	Workpiece workpiece = Workpiece(init_length, init_radius, glm::vec3(-init_length / 2, 0.0f, 0.0f), "metal");
+	Shader curveShader("./shaders/curveShader.vs", "./shaders/curveShader.fs");
+	Shader skyboxShader("./shaders/skyboxShader.vs", "./shaders/skyboxShader.fs");
+	workpiece = Workpiece(init_length, init_radius, glm::vec3(-init_length / 2, 0.0f, 0.0f), material);
+	knife = Knife(glm::vec3(-init_length / 2, 0.0f, init_radius), glm::vec3(-init_length / 2 - 0.05f, 0.0f, init_radius + 0.05f), glm::vec3(-init_length / 2 + 0.05f, 0.0f, init_radius + 0.05f));
+	bezierCurve = BezierCurve(glm::vec3(-init_length / 2, 0.0f, 0.0f), glm::vec3(-init_length / 4, 0.0f, 0.0f), glm::vec3(init_length / 4, 0.0f, 0.0f), glm::vec3(init_length / 2, 0.0f, 0.0f));
+	skybox = Skybox(0);
 
 	while (!glfwWindowShouldClose(window)) {
-		if (current_mode == FREE) {
-			float currentFrame = glfwGetTime();
-			deltaTime = currentFrame - lastFrame;
-			lastFrame = currentFrame;
-			processInput(window);
-			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-			//use
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-			workpiece.cut(knife.head);
-
-			glm::mat4 view = camera.GetViewMatrix();
-			glm::mat4 projection;
-			projection = glm::perspective(glm::radians(45.0f), (float)window_width / window_height, 0.1f, 100.0f);
-			glm::mat4 model = glm::mat4(1.0f);
-			model = glm::rotate(model, (float)glfwGetTime() * 50, glm::vec3(1.0f, 0.0f, 0.0f));
-			workpieceShader.use();
-			workpieceShader.setMat4("model", model);
-			glm::mat4 normalMat = glm::mat3(glm::transpose(glm::inverse(model)));
-			workpieceShader.setMat4("view", view);
-			workpieceShader.setMat4("projection", projection);
-			workpieceShader.setVec3("lightPos", lightPos);
-			workpieceShader.setMat3("normalMat", normalMat);
-			workpieceShader.setVec3("viewPos", camera.Position);
-
-
-			workpiece.draw(workpieceShader);
-
-			unsigned int VAO;
-
-			float vertices[] = {
-				1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-				1.0f, 0.0f, 2.0f, 0.0f, 1.0f, 0.0f,
-				2.0f, 0.0f, 2.0f, 0.0f, 0.0f, 1.0f,
-			};
-			glGenVertexArrays(1, &VAO);
-			glBindVertexArray(VAO);
-			unsigned int VBO;
-			glGenBuffers(1, &VBO);
-			glBindBuffer(GL_ARRAY_BUFFER, VBO);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-			glEnableVertexAttribArray(1);
-			testShader.use();
-			model = glm::mat4(1.0f);
-			model = knife.shift * model;
-			testShader.setMat4("model", model);
-			testShader.setMat4("projection", projection);
-			testShader.setMat4("view", view);
-			glBindVertexArray(VAO);
-			glDrawArrays(GL_TRIANGLES, 0, 3);
+		if (current_mode == FREE || current_mode == AUTO_CUT) {
+			cutMode(window, workpieceShader, particleShader, testShader, skyboxShader);
 		}
 		else if (current_mode == DRAW_BEZIER) {
 			drawBezierMode(window, curveShader);
@@ -362,17 +313,24 @@ void processInput(GLFWwindow* window)
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 			camera.ProcessKeyboard(RIGHT, deltaTime);
 
+		float movementSpeed = 0.1f;
+		float movement = deltaTime * movementSpeed;
 		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-			knife.ProcessKeyboard(Knife::FORWARD, deltaTime);
+			knife.move(Knife::FORWARD, movement);
 		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-			knife.ProcessKeyboard(Knife::BACKWARD, deltaTime);
+			knife.move(Knife::BACKWARD, movement);
 		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-			knife.ProcessKeyboard(Knife::LEFT, deltaTime);
+			knife.move(Knife::LEFT, movement);
 		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-			knife.ProcessKeyboard(Knife::RIGHT, deltaTime);
+			knife.move(Knife::RIGHT, movement);
 	}
 	else if (current_mode == DRAW_BEZIER) {
-
+		if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS) {
+			current_mode = AUTO_CUT;
+			auto_mode_t = 0.0f;
+			glm::vec3 start = bezierCurve.sample(0.0f);
+			knife.reset(glm::vec3(start.x, 0, start.y));
+		}
 	}
 }
 

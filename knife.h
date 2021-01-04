@@ -39,12 +39,25 @@ public:
 
 class Knife {
 private:
-	unsigned int VAO;
-	void setupTest() {
-		//test
-		
+	void setupKnife() {
+		float vertices[] = {
+		  head.h.x, head.h.y, head.h.z, 1.0f, 0.0f, 0.0f,
+		  head.p1.x, head.p1.y, head.p1.z, 0.0f, 1.0f, 0.0f,
+		  head.p2.x, head.p2.y, head.p2.z, 0.0f, 0.0f, 1.0f,
+		};
+		glGenVertexArrays(1, &VAO);
+		glBindVertexArray(VAO);
+		unsigned int VBO;
+		glGenBuffers(1, &VBO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+		glEnableVertexAttribArray(1);
 	}
 public:
+	unsigned int VAO;
 	Head head;
 	enum Knife_Movement {
 		FORWARD,
@@ -62,13 +75,11 @@ public:
 		head.p1 = p1;
 		head.p2 = p2;
 		shift = glm::mat4(1.0f);
-		setupTest();
+		setupKnife();
 
 	}
-	void ProcessKeyboard(Knife_Movement direction, float deltaTime)
+	void move(Knife_Movement direction, float delta)
 	{
-		float MovementSpeed = 0.1f;
-		float delta = MovementSpeed * deltaTime;
 		if (direction == FORWARD) {
 			head.add(glm::vec3(0.0f, 0.0f, -delta));
 			shift = glm::translate(shift, glm::vec3(0.0f, 0.0f, -delta));
@@ -92,6 +103,15 @@ public:
 		cout << head.p2.x << "," << head.p2.y << "," << head.p2.z << endl;*/
 	}
 	void draw(Shader& shader) {
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+	}
+
+	void reset(glm::vec3 head_h) {
+		float delta_x = head_h.x - head.h.x;
+		float delta_z = head_h.z - head.h.z;
+		move(BACKWARD, delta_z);
+		move(RIGHT, delta_x);
 	}
 };
 
