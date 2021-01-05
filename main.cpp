@@ -29,14 +29,14 @@ bool mouse_press = false;
 const float init_radius = 0.5f;
 const float init_length = 5.0f;
 float auto_mode_t = 0.0f;
-std::string material = "metal";
+std::string material = "wood";
 
 const enum work_mode {
 	FREE, DRAW_BEZIER, AUTO_CUT
 };
 work_mode current_mode = work_mode::FREE;
 
-glm::vec3 lightPos(4.0f, 20.0f, 1.0f);
+glm::vec3 lightPos(0.0f, 20.0f, 1.0f);
 
 Camera camera(glm::vec3(0.0f, 3.5f, 5.0f), glm::normalize(glm::vec3(0.0f, 5.0f, -3.5f)));
 Camera curveCamera(glm::vec3(0.0f, 0.0f, 5.0f));
@@ -162,7 +162,7 @@ void autoStride() {
 	knife.move(Knife::RIGHT, delta_x);
 }
 
-void cutMode(GLFWwindow* window, Shader& workpieceShader, Shader& particleShader, Shader& testShader, Shader&skyboxShader) {
+void cutMode(GLFWwindow* window, Shader& workpieceShader, Shader& particleShader, Shader& knifeShader, Shader&skyboxShader) {
 	float currentFrame = glfwGetTime();
 	deltaTime = currentFrame - lastFrame;
 	lastFrame = currentFrame;
@@ -170,7 +170,7 @@ void cutMode(GLFWwindow* window, Shader& workpieceShader, Shader& particleShader
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	//use
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	
 	if (current_mode == AUTO_CUT) {
 		if (auto_mode_t <= 1.0f) {
 			autoStride();
@@ -192,7 +192,9 @@ void cutMode(GLFWwindow* window, Shader& workpieceShader, Shader& particleShader
 	workpieceShader.setMat3("normalMat", normalMat);
 	workpieceShader.setVec3("viewPos", camera.Position);
 	particleShader.use();
-	particleShader.setMat4("model", glm::mat4(1.0f));
+	model = glm::mat4(1.0f);
+	normalMat = glm::mat3(glm::transpose(glm::inverse(model)));
+	particleShader.setMat4("model", model);
 	particleShader.setMat4("view", view);
 	particleShader.setMat4("projection", projection);
 	particleShader.setVec3("lightPos", lightPos);
@@ -201,15 +203,19 @@ void cutMode(GLFWwindow* window, Shader& workpieceShader, Shader& particleShader
 
 	workpiece.draw(workpieceShader, particleShader);
 
-	testShader.use();
+	knifeShader.use();
 	model = glm::mat4(1.0f);
 	model = knife.shift * model;
-	testShader.setMat4("model", model);
-	testShader.setMat4("projection", projection);
-	testShader.setMat4("view", view);
-	knife.draw(testShader);
-
-
+	normalMat = glm::mat3(glm::transpose(glm::inverse(model)));
+	knifeShader.setMat4("model", model);
+	knifeShader.setMat4("projection", projection);
+	knifeShader.setMat4("view", view);
+	knifeShader.setVec3("lightPos", lightPos);
+	knifeShader.setMat3("normalMat", normalMat);
+	knifeShader.setVec3("viewPos", camera.Position);
+	knife.draw(knifeShader);
+	
+	
 	skyboxShader.use();
 	model = glm::mat4(1.0f);
 	model = glm::rotate(model, glm::radians(-15.0f), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -260,22 +266,22 @@ int main() {
 
 	glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEPTH_TEST);
-
+	
 
 
 	Shader workpieceShader("./shaders/mainShader.vs", "./shaders/mainShader.fs");
 	Shader particleShader("./shaders/mainShader.vs", "./shaders/mainShader.fs");
-	Shader testShader("./shaders/test.vs", "./shaders/test.fs");
+	Shader knifeShader("./shaders/mainShader.vs", "./shaders/mainShader.fs");
 	Shader curveShader("./shaders/curveShader.vs", "./shaders/curveShader.fs");
 	Shader skyboxShader("./shaders/skyboxShader.vs", "./shaders/skyboxShader.fs");
-	workpiece = Workpiece(init_length, init_radius, glm::vec3(-init_length / 2, 0.0f, 0.0f), material);
-	knife = Knife(glm::vec3(-init_length / 2, 0.0f, init_radius), glm::vec3(-init_length / 2 - 0.05f, 0.0f, init_radius + 0.05f), glm::vec3(-init_length / 2 + 0.05f, 0.0f, init_radius + 0.05f));
+	workpiece = Workpiece(init_length, init_radius, glm::vec3(-init_length / 2, 0.0f, 0.0f), material);                
+	knife = Knife(glm::vec3(-init_length / 2, 0.0f, init_radius), glm::vec3(-init_length / 2 - 0.1f, 0.0f, init_radius + 0.5f), glm::vec3(-init_length / 2 + 0.1f, 0.0f, init_radius + 0.5f), "metal");
 	bezierCurve = BezierCurve(glm::vec3(-init_length / 2, 0.0f, 0.0f), glm::vec3(-init_length / 4, 0.0f, 0.0f), glm::vec3(init_length / 4, 0.0f, 0.0f), glm::vec3(init_length / 2, 0.0f, 0.0f));
 	skybox = Skybox(0);
-
+	
 	while (!glfwWindowShouldClose(window)) {
 		if (current_mode == FREE || current_mode == AUTO_CUT) {
-			cutMode(window, workpieceShader, particleShader, testShader, skyboxShader);
+			cutMode(window, workpieceShader, particleShader, knifeShader, skyboxShader);
 		}
 		else if (current_mode == DRAW_BEZIER) {
 			drawBezierMode(window, curveShader);
