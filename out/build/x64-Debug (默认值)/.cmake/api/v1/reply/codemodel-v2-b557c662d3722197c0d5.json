@@ -1,0 +1,235 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						3
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.17"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "External/glfw-master",
+					"childIndexes" : 
+					[
+						2
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "External/glfw-master",
+					"targetIndexes" : 
+					[
+						5
+					]
+				},
+				{
+					"build" : "External/glfw-master/src",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "External/glfw-master/src",
+					"targetIndexes" : 
+					[
+						4
+					]
+				},
+				{
+					"build" : "External/assimp-5.0.1",
+					"childIndexes" : 
+					[
+						4,
+						6
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.0"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 2,
+					"source" : "External/assimp-5.0.1",
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"build" : "External/assimp-5.0.1/contrib",
+					"childIndexes" : 
+					[
+						5
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.0"
+					},
+					"parentIndex" : 3,
+					"projectIndex" : 2,
+					"source" : "External/assimp-5.0.1/contrib"
+				},
+				{
+					"build" : "External/assimp-5.0.1/contrib/irrXML",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.0"
+					},
+					"parentIndex" : 4,
+					"projectIndex" : 2,
+					"source" : "External/assimp-5.0.1/contrib/irrXML",
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"build" : "External/assimp-5.0.1/code",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.0"
+					},
+					"parentIndex" : 3,
+					"projectIndex" : 2,
+					"source" : "External/assimp-5.0.1/code",
+					"targetIndexes" : 
+					[
+						3
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1,
+						2
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "CG_OpenGL",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						1,
+						2
+					],
+					"name" : "GLFW",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						4,
+						5
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						3,
+						4,
+						5,
+						6
+					],
+					"name" : "Assimp",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						1,
+						2,
+						3
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "CG_OpenGL::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-CG_OpenGL-Debug-1ec1c1e93ef93656a78b.json",
+					"name" : "CG_OpenGL",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "IrrXML::@44d53bafbd534209bc50",
+					"jsonFile" : "target-IrrXML-Debug-c721bfa513dd60337af8.json",
+					"name" : "IrrXML",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "UpdateAssimpLibsDebugSymbolsAndDLLs::@ffd19cf4930955f12741",
+					"jsonFile" : "target-UpdateAssimpLibsDebugSymbolsAndDLLs-Debug-b3e23a429070a5253c12.json",
+					"name" : "UpdateAssimpLibsDebugSymbolsAndDLLs",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "assimp::@9e8f97f39b9b19cb5ec2",
+					"jsonFile" : "target-assimp-Debug-36f32387c0c7a6989a8a.json",
+					"name" : "assimp",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "glfw::@855bba53f66a8775f351",
+					"jsonFile" : "target-glfw-Debug-dcef541d753534a3049c.json",
+					"name" : "glfw",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "uninstall::@51fae7452aaf1c5f3df8",
+					"jsonFile" : "target-uninstall-Debug-47e076b2bcdb653cae89.json",
+					"name" : "uninstall",
+					"projectIndex" : 1
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/myk1515/Desktop/cg_proj/out/build/x64-Debug (默认值)",
+		"source" : "C:/Users/myk1515/Desktop/cg_proj"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 0
+	}
+}

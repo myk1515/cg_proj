@@ -120,6 +120,7 @@ Knife::Knife() {
 
 }
 Knife::Knife(glm::vec3 h, glm::vec3 p1, glm::vec3 p2, std::string material) {
+	isConstrain = false;
 	head.h = h;
 	head.p1 = p1;
 	head.p2 = p2;
@@ -138,8 +139,83 @@ Knife::Knife(glm::vec3 h, glm::vec3 p1, glm::vec3 p2, std::string material) {
 	setupKnife();
 
 }
+
+float Knife::find_y(float x) {
+	if (x < startx)
+		return -1.0f;
+	int i = (int)((x - startx) / 0.01f);
+//	std::cout << "curve: " << x << "," << y_x[i] << std::endl;
+	return y_x[i];
+}
+
 void Knife::move(Knife_Movement direction, float delta)
 {
+	if (delta < 0.0f) {
+		switch (direction) {
+		case FORWARD: {
+			direction = BACKWARD; break;
+		}
+		case BACKWARD: {
+			direction = FORWARD; break;
+		}
+		case LEFT: {
+			direction = RIGHT; break;
+		}
+		case RIGHT: {
+			direction = LEFT; break;
+		}
+		}
+		delta = -delta;
+	}
+	//std::cout << "head :" << head.h.x << "," << head.h.y << "," << head.h.z << std::endl;
+	if (isConstrain) {
+		float z = find_y(head.h.x);
+		if (direction == BACKWARD) {
+			head.add(glm::vec3(0.0f, 0.0f, delta));
+			shift = glm::translate(shift, glm::vec3(0.0f, 0.0f, delta));
+		}
+		if (direction == FORWARD) {
+			//std::cout << "head z " << head.h.z << "  c z " << z << std::endl;
+			if (head.h.z - delta < z && z > 0) {
+				return;
+			}
+			else {
+				head.add(glm::vec3(0.0f, 0.0f, -delta));
+				shift = glm::translate(shift, glm::vec3(0.0f, 0.0f, -delta));
+			}
+		}
+		if (direction == LEFT) {
+			float z_prime = find_y(head.h.x - delta);
+		//	std::cout << "delta :" << z_prime - head.h.z << std::endl;
+			if (head.h.z < z_prime && z_prime > 0) {
+				head.add(glm::vec3(0.0f, 0.0f, (z_prime - head.h.z)));
+				shift = glm::translate(shift, glm::vec3(0.0f, 0.0f, (z_prime - head.h.z)));
+
+			/*	head.add(glm::vec3(-delta, 0.0f, 0.0f));
+				shift = glm::translate(shift, glm::vec3(-delta, 0.0f, 0.0f));*/
+			}
+			else {
+				head.add(glm::vec3(-delta, 0.0f, 0.0f));
+				shift = glm::translate(shift, glm::vec3(-delta, 0.0f, 0.0f));
+			}
+		}
+		if (direction == RIGHT) {
+			float z_prime = find_y(head.h.x + delta);
+		//	std::cout << "delta :" << z_prime - head.h.z << std::endl;
+			if (head.h.z < z_prime && z_prime > 0) {
+				head.add(glm::vec3(0.0f, 0.0f, (z_prime - head.h.z)));
+				shift = glm::translate(shift, glm::vec3(0.0f, 0.0f, (z_prime - head.h.z)));
+
+			/*	head.add(glm::vec3(delta, 0.0f, 0.0f));
+				shift = glm::translate(shift, glm::vec3(delta, 0.0f, 0.0f));*/
+			}
+			else {
+				head.add(glm::vec3(delta, 0.0f, 0.0f));
+				shift = glm::translate(shift, glm::vec3(delta, 0.0f, 0.0f));
+			}
+		}
+		return;
+	}
 	if (direction == FORWARD) {
 		head.add(glm::vec3(0.0f, 0.0f, -delta));
 		shift = glm::translate(shift, glm::vec3(0.0f, 0.0f, -delta));
@@ -163,6 +239,7 @@ void Knife::move(Knife_Movement direction, float delta)
 		cout << head.p2.x << "," << head.p2.y << "," << head.p2.z << endl;*/
 }
 void Knife::draw(Shader& shader) {
+	setupKnife();
 	shader.use();
 	glActiveTexture(GL_TEXTURE0);
 	glUniform1i(glGetUniformLocation(shader.ID, "texture_diffuse"), 0);

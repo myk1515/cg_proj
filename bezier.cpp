@@ -100,3 +100,28 @@ glm::vec3 BezierCurve::sample(float t) {
 	}
 	return points[0];
 }
+
+
+float* BezierCurve::sampleAll(float start) {
+	for (int i = 0; i < 1000; i++)
+		y_x[i] = -1.0f;
+	float interval_d = 0.01f;
+	float xpos = start;
+	int i = 0;
+	for (float t = 0.0f; t < 1.0f; t += 0.0001f) {
+		glm::vec3 p = sample(t);
+		if (p.x > start && std::fabs(xpos - p.x) < 1e-2) {
+			if (p.y > 0.5f)
+				y_x[i] = 0.5f;
+			else
+				y_x[i] = p.y;
+			i++; xpos += interval_d;
+		}
+	}
+	for (int i = 0; i < 500; i++)
+		std::cout << y_x[i] << " ";
+	std::cout << std::endl;
+
+	return y_x;
+
+}

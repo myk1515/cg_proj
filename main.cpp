@@ -17,6 +17,7 @@
 #include "particle.h"
 #include "skybox.h"
 #include "workpiece.h"
+#include "wheel.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -30,9 +31,11 @@ const float init_radius = 0.5f;
 const float init_length = 5.0f;
 float auto_mode_t = 0.0f;
 std::string material = "wood";
+bool stopRotate = false;
+bool stopAuto = false;
 
 const enum work_mode {
-	FREE, DRAW_BEZIER, AUTO_CUT
+	FREE, DRAW_BEZIER, AUTO, CONSTRAIN
 };
 work_mode current_mode = work_mode::FREE;
 
@@ -44,6 +47,8 @@ Knife knife;
 BezierCurve bezierCurve;
 Workpiece workpiece;
 Skybox skybox;
+Wheel wheel;
+glm::vec3 dir = glm::vec3(0.0f);
 float lastX = window_width / 2.0f;
 float lastY = window_height / 2.0f;
 bool firstMouse = true;
@@ -112,47 +117,11 @@ void drawBezierMode(GLFWwindow* window, Shader& curveShader) {
 	bezierCurve.drawCurve(curveShader);
 	glBindVertexArray(axis_VAO);
 	glDrawArrays(GL_LINES, 0, 8);
-	float vertices[] = {
-	   0.5f,  0.5f, 0.0f,  // top right
-	   0.5f, -0.5f, 0.0f,  // bottom right
-	  -0.5f, -0.5f, 0.0f,  // bottom left
-	  -0.5f,  0.5f, 0.0f   // top left 
-	};
-	unsigned int indices[] = {  // note that we start from 0!
-		0, 1, 3,  // first Triangle
-		1, 2, 3   // second Triangle
-	};
-	unsigned int VBO, VAO, EBO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
-	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	// remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-	// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-	// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-	glBindVertexArray(0);
-	glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-	glDrawArrays(GL_TRIANGLES, 0, 6);
+	
 }
 
 void autoStride() {
-	float stride = 0.0005;
+	float stride = 0.0001f;
 	glm::vec3 curPos = bezierCurve.sample(auto_mode_t);
 	glm::vec3 nextPos = bezierCurve.sample(auto_mode_t + stride);
 	auto_mode_t += stride;
@@ -162,7 +131,7 @@ void autoStride() {
 	knife.move(Knife::RIGHT, delta_x);
 }
 
-void cutMode(GLFWwindow* window, Shader& workpieceShader, Shader& particleShader, Shader& knifeShader, Shader&skyboxShader) {
+void cutMode(GLFWwindow* window, Shader& workpieceShader, Shader& particleShader, Shader& knifeShader, Shader& skyboxShader, Shader& wheelShader) {
 	float currentFrame = glfwGetTime();
 	deltaTime = currentFrame - lastFrame;
 	lastFrame = currentFrame;
@@ -170,19 +139,34 @@ void cutMode(GLFWwindow* window, Shader& workpieceShader, Shader& particleShader
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	//use
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
-	if (current_mode == AUTO_CUT) {
+
+	float movementSpeed = 0.1f;
+	float movement = deltaTime * movementSpeed;
+	if (std::fabs(dir.y) > 1e-4)
+		knife.move(Knife::FORWARD, movement * dir.y);
+	if (std::fabs(dir.x) > 1e-4)
+		knife.move(Knife::RIGHT, movement * dir.x);
+
+
+	if (current_mode == AUTO) {
 		if (auto_mode_t <= 1.0f) {
 			autoStride();
 		}
+		else {
+			auto_mode_t = 0.0f;
+			current_mode = FREE;
+		}
 	}
+
 	workpiece.cut(knife.head);
 
 	glm::mat4 view = camera.GetViewMatrix();
 	glm::mat4 projection;
 	projection = glm::perspective(glm::radians(45.0f), (float)window_width / window_height, 0.1f, 100.0f);
 	glm::mat4 model = glm::mat4(1.0f);
-	model = glm::rotate(model, (float)glfwGetTime() * 50, glm::vec3(1.0f, 0.0f, 0.0f));
+	if (!stopRotate) {
+		model = glm::rotate(model, (float)glfwGetTime() * 50, glm::vec3(1.0f, 0.0f, 0.0f));
+	}
 	workpieceShader.use();
 	workpieceShader.setMat4("model", model);
 	glm::mat4 normalMat = glm::mat3(glm::transpose(glm::inverse(model)));
@@ -205,7 +189,7 @@ void cutMode(GLFWwindow* window, Shader& workpieceShader, Shader& particleShader
 
 	knifeShader.use();
 	model = glm::mat4(1.0f);
-	model = knife.shift * model;
+//	model = knife.shift * model;
 	normalMat = glm::mat3(glm::transpose(glm::inverse(model)));
 	knifeShader.setMat4("model", model);
 	knifeShader.setMat4("projection", projection);
@@ -224,6 +208,19 @@ void cutMode(GLFWwindow* window, Shader& workpieceShader, Shader& particleShader
 	skyboxShader.setMat4("view", view);
 	skyboxShader.setMat4("projection", projection);
 	skybox.draw(skyboxShader);
+	 
+
+
+	model = glm::mat4(1.0f);
+	view = curveCamera.GetViewMatrix();
+	projection = glm::perspective(glm::radians(45.0f), (float)window_width / window_height, 0.1f, 100.0f);
+	wheelShader.use();
+	model = glm::mat4(1.0f);
+	wheelShader.setMat4("model", model);
+	wheelShader.setMat4("view", view);
+	wheelShader.setMat4("projection", projection);
+	wheel.setInverseMat(glm::inverse(projection * view * model));
+	wheel.draw(wheelShader);
 }
 
 int main() {
@@ -274,14 +271,16 @@ int main() {
 	Shader knifeShader("./shaders/mainShader.vs", "./shaders/mainShader.fs");
 	Shader curveShader("./shaders/curveShader.vs", "./shaders/curveShader.fs");
 	Shader skyboxShader("./shaders/skyboxShader.vs", "./shaders/skyboxShader.fs");
+	Shader wheelShader("./shaders/curveShader.vs", "./shaders/curveShader.fs");
 	workpiece = Workpiece(init_length, init_radius, glm::vec3(-init_length / 2, 0.0f, 0.0f), material);                
 	knife = Knife(glm::vec3(-init_length / 2, 0.0f, init_radius), glm::vec3(-init_length / 2 - 0.1f, 0.0f, init_radius + 0.5f), glm::vec3(-init_length / 2 + 0.1f, 0.0f, init_radius + 0.5f), "metal");
 	bezierCurve = BezierCurve(glm::vec3(-init_length / 2, 0.0f, 0.0f), glm::vec3(-init_length / 4, 0.0f, 0.0f), glm::vec3(init_length / 4, 0.0f, 0.0f), glm::vec3(init_length / 2, 0.0f, 0.0f));
 	skybox = Skybox(0);
+	wheel = Wheel(glm::vec3(3.0f, -1.4f, 0.0f));
 	
 	while (!glfwWindowShouldClose(window)) {
-		if (current_mode == FREE || current_mode == AUTO_CUT) {
-			cutMode(window, workpieceShader, particleShader, knifeShader, skyboxShader);
+		if (current_mode == FREE || current_mode == AUTO || current_mode == CONSTRAIN) {
+			cutMode(window, workpieceShader, particleShader, knifeShader, skyboxShader, wheelShader);
 		}
 		else if (current_mode == DRAW_BEZIER) {
 			drawBezierMode(window, curveShader);
@@ -309,7 +308,7 @@ void processInput(GLFWwindow* window)
 	}
 
 
-	if (current_mode == FREE) {
+	if (current_mode == FREE || current_mode == AUTO || current_mode == CONSTRAIN) {
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 			camera.ProcessKeyboard(FORWARD, deltaTime);
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -318,24 +317,70 @@ void processInput(GLFWwindow* window)
 			camera.ProcessKeyboard(LEFT, deltaTime);
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 			camera.ProcessKeyboard(RIGHT, deltaTime);
+		if (current_mode != AUTO) {
+			float movementSpeed = 0.1f;
+			float movement = deltaTime * movementSpeed;
+			if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+				knife.move(Knife::FORWARD, movement);
+			if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+				knife.move(Knife::BACKWARD, movement);
+			if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+				knife.move(Knife::LEFT, movement);
+			if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+				knife.move(Knife::RIGHT, movement);
+		}
 
-		float movementSpeed = 0.1f;
-		float movement = deltaTime * movementSpeed;
-		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-			knife.move(Knife::FORWARD, movement);
-		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-			knife.move(Knife::BACKWARD, movement);
-		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-			knife.move(Knife::LEFT, movement);
-		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-			knife.move(Knife::RIGHT, movement);
+
+		if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
+			if (material == "wood") {
+				material = "metal";
+				workpiece = Workpiece(init_length, init_radius, glm::vec3(-init_length / 2, 0.0f, 0.0f), material);
+			}
+			else {
+				material = "wood";
+				workpiece = Workpiece(init_length, init_radius, glm::vec3(-init_length / 2, 0.0f, 0.0f), material);
+			}
+			knife = Knife(glm::vec3(-init_length / 2, 0.0f, init_radius), glm::vec3(-init_length / 2 - 0.1f, 0.0f, init_radius + 0.5f), glm::vec3(-init_length / 2 + 0.1f, 0.0f, init_radius + 0.5f), "metal");
+			current_mode = FREE;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+			workpiece = Workpiece(init_length, init_radius, glm::vec3(-init_length / 2, 0.0f, 0.0f), material);
+			knife = Knife(glm::vec3(-init_length / 2, 0.0f, init_radius), glm::vec3(-init_length / 2 - 0.1f, 0.0f, init_radius + 0.5f), glm::vec3(-init_length / 2 + 0.1f, 0.0f, init_radius + 0.5f), "metal");
+			current_mode = FREE;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+			stopRotate = false;
+		}
+		if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS) {
+			stopRotate = true;
+		}
+		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+			knife.isConstrain = false;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS && current_mode == CONSTRAIN) {
+			knife = Knife(glm::vec3(-init_length / 2, 0.0f, init_radius), glm::vec3(-init_length / 2 - 0.1f, 0.0f, init_radius + 0.5f), glm::vec3(-init_length / 2 + 0.1f, 0.0f, init_radius + 0.5f), "metal");
+			glm::vec3 start = bezierCurve.sample(0.0f);
+			knife.reset(glm::vec3(start.x, 0, start.y));
+			auto_mode_t = 0.0f;
+			current_mode = AUTO;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS && current_mode == AUTO) {
+			auto_mode_t = 2.0f;
+		}
 	}
 	else if (current_mode == DRAW_BEZIER) {
 		if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS) {
-			current_mode = AUTO_CUT;
+			current_mode = CONSTRAIN;
 			auto_mode_t = 0.0f;
 			glm::vec3 start = bezierCurve.sample(0.0f);
-			knife.reset(glm::vec3(start.x, 0, start.y));
+			knife.reset(glm::vec3(-init_length / 2, 0.0f, init_radius));
+			knife.y_x = bezierCurve.sampleAll(-init_length / 2);
+			knife.isConstrain = true;
+			knife.startx = -init_length / 2;
 		}
 	}
 }
@@ -364,8 +409,14 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	float xoffset = xpos - lastX;
 	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
 
-	if (current_mode == FREE) {
+	if (current_mode == FREE || current_mode == CONSTRAIN) {
 		camera.ProcessMouseMovement(xoffset, yoffset);
+		if (mouse_press) {
+			dir = wheel.ProcessMouseMovement(xpos / window_width * 2 - 1.0f, -(ypos / window_height * 2 - 1.0f));
+			dir = glm::normalize(dir);
+			dir = -dir;
+			
+		}
 	}
 	else if (current_mode == DRAW_BEZIER) {
 		if (mouse_press) {
@@ -388,7 +439,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-	if (current_mode == DRAW_BEZIER) {
+//	if (current_mode == DRAW_BEZIER) {
 		if (action == GLFW_PRESS) 
 			switch (button) {
 				case GLFW_MOUSE_BUTTON_LEFT: {
@@ -400,9 +451,11 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 			switch (button) {
 				case GLFW_MOUSE_BUTTON_LEFT: {
 					mouse_press = false;
+					dir = glm::vec3(0.0f);
+					wheel.resetControlPoint();
 					break;
 				}
 			}
-	}
+//	}
 	return;
 }

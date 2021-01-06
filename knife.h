@@ -46,9 +46,13 @@ private:
 	void loadTexture(unsigned int* texture, std::string path);
 	Material material;
 	Mesh mesh;
+	float find_y(float x);
 public:
 	unsigned int VAO;
 	Head head;
+	bool isConstrain;
+	float startx;
+	float* y_x;
 	enum Knife_Movement {
 		FORWARD,
 		BACKWARD,
@@ -61,6 +65,7 @@ public:
 	Knife(glm::vec3 h, glm::vec3 p1, glm::vec3 p2, std::string material);
 	void move(Knife_Movement direction, float delta);
 	void draw(Shader& shader);
+
 
 	void reset(glm::vec3 head_h);
 };

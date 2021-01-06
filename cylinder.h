@@ -19,6 +19,9 @@
 #include "mesh.h"
 #include "shader.h"
 
+
+#define FloatPrecision(X,n) ((float)((int)(((X)+(((X)>=0)?5*pow(10,-(n+1)):-5*pow(10,-(n+1))))*pow(10,(n)))/pow(10,(n))))
+
 struct Material {
 	unsigned int diffuse;
 	glm::vec3 specular;
@@ -34,40 +37,69 @@ private:
 	glm::vec3 leftCenterPos;
 	float d;
 	Material sideMaterial,sectionMaterial;
+	float adjustFloat(float x) {
+		return x;
+	}
 public:
 	float radius;
+	float leftRadius;
+	float rightRadius;
 	bool uncut;
-	Cylinder(float radius, glm::vec3 leftCenterPos, float d, Material sideMaterial, Material sectionMaterial) {
+	Cylinder(float radius, float leftRadius, float rightRadius, glm::vec3 leftCenterPos, float d, Material sideMaterial, Material sectionMaterial) {
 		this->radius = radius;
 		this->uncut = true;
 		this->leftCenterPos = leftCenterPos;
 		this->d = d;
 		this->sideMaterial = sideMaterial;
 		this->sectionMaterial = sectionMaterial;
-		setRadius(radius);
+		this->rightRadius = rightRadius;
+		this->leftRadius = leftRadius;
+		setRadius(radius, leftRadius, rightRadius);
 
 	}
 
 	//generate the vertices
-	void setRadius(float radius) {
-		int num = 360;
+	void setRadius(float radius, float leftRadius, float rightRadius) {
+		int num = 180;
 		if (!uncut) {
 			sideMaterial = sectionMaterial;
 		}
-		this->radius = radius;
+		if (radius > 0)
+			this->radius = radius;
+		if (leftRadius > 0)
+			this->leftRadius = leftRadius;
+		if (rightRadius > 0)
+			this->rightRadius = rightRadius;
+		if (leftRadius < 0 && rightRadius < 0) {
+			return;
+		}
 		vector<Vertex> vertices;
 		vector<unsigned int> indices;
 		for (int i = 0; i < num; i++) {
 			Vertex vertex1, vertex2;
-			float angle = glm::radians((float)i);
+			float angle = glm::radians((float)i * (360 / num));
 			glm::vec3 dir = glm::vec3(0.0f, glm::cos(angle), glm::sin(angle));
-			vertex1.Position = leftCenterPos + dir * radius;
-			vertex1.Normal = glm::normalize(dir);
+			vertex1.Position = leftCenterPos + dir * leftRadius;
 			vertex1.TexCoords = glm::vec2(leftCenterPos.x, (float)angle * radius);
 		//	cout << angle << endl;
-			vertex2.Position = vertex1.Position + glm::vec3(d, 0.0f, 0.0f);
-			vertex2.Normal = glm::normalize(dir);
+			vertex2.Position = leftCenterPos + glm::vec3(d, 0.0f, 0.0f) + dir * rightRadius;
 			vertex2.TexCoords = glm::vec2(leftCenterPos.x + d, (float)angle * radius);
+
+			glm::vec3 v = vertex2.Position - vertex1.Position;
+			glm::vec3 normal = glm::cross(glm::cross(dir, v), v);
+
+			normal = glm::normalize(normal);
+		 	
+			normal.x = FloatPrecision(normal.x, 1);
+			normal.y = FloatPrecision(normal.y, 1);
+			normal.z = FloatPrecision(normal.z, 1);
+
+	/*		if (i == 0)
+				std::cout << "normal: " << normal.x << "," << normal.y << "," << normal.z << std::endl;*/
+	//		normal = -glm::normalize(dir);
+			vertex2.Normal = vertex1.Normal = -normal;
+
+
 			vertices.push_back(vertex1);
 			vertices.push_back(vertex2);
 

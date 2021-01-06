@@ -3,6 +3,7 @@
 #include "include/stb_image.h"
 
 
+#define FloatPrecision(X,n) ((float)((int)(((X)+(((X)>=0)?5*pow(10,-(n+1)):-5*pow(10,-(n+1))))*pow(10,(n)))/pow(10,(n))))
 
 void Workpiece::loadTexture(unsigned int* texture, std::string path) {
 	glGenTextures(1, texture);
@@ -55,7 +56,8 @@ Workpiece::Workpiece(float length, float radius, glm::vec3 leftCenterPos, std::s
 	}
 
 	for (float delta = 0; delta < length; delta += interval_d) {
-		cylinders.push_back(Cylinder(radius, leftCenterPos + glm::vec3(delta, 0.0f, 0.0f), interval_d, sideMaterial, sectionMaterial));
+		isChanged.push_back(false);
+		cylinders.push_back(Cylinder(radius, radius, radius, leftCenterPos + glm::vec3(delta, 0.0f, 0.0f), interval_d, sideMaterial, sectionMaterial));
 	}
 
 }
@@ -71,11 +73,18 @@ void Workpiece::draw(Shader& workpieceShader, Shader& particleShader) {
 		cylinders[i].draw(workpieceShader);
 	}
 }
+void Workpiece::adjustCylinder(int id) {
+	float left = (id > 0) ? cylinders[id - 1].radius : cylinders[id].radius;
+	float right = (id + 1 < cylinders.size()) ? cylinders[id + 1].radius : cylinders[id].radius;
+	float r = cylinders[id].radius;
+	cylinders[id].setRadius(-1, (left + r) / 2, (right + r) / 2);
+}
 
 void Workpiece::cut(Head head) {
 	int size = cylinders.size();
 	bool cut = false;
 	glm::vec3 h = head.h, p1 = head.p1, p2 = head.p2;
+	//std::cout << "workpiece :" << h.x << "," << h.y << "," << h.z << std::endl;
 	for (int i = 0; i < size; i++) {
 		float z_prime;
 		bool collision = false;
@@ -86,16 +95,42 @@ void Workpiece::cut(Head head) {
 		else if (h.x < cur_x && cur_x < p2.x) {
 			z_prime = (h.z - p2.z) / (h.x - p2.x) * (cur_x - h.x) + h.z;
 		}
+		else if (cur_x == h.x) {
+			z_prime = h.z;
+		}
 		else
 			continue;
 		if (z_prime < cylinders[i].radius) {
-			if (z_prime < 0) z_prime = 0;
-			cut = true;
+			if (z_prime < 0) 
+				z_prime = 0;
+			if (cylinders[i].radius > 0) {
+				cut = true;
+			}
 			cylinders[i].uncut = false;
-			cylinders[i].setRadius(z_prime);
+			if (z_prime != cylinders[i].radius) {
+				if (i > 0)
+					isChanged[i - 1] = true;
+				isChanged[i] = true;
+				if (i + 1 < size)
+					isChanged[i + 1] = true;
+			}
+			if (z_prime <= 0)
+				cylinders[i].setRadius(0.0f, 0.0f, 0.0f);
+			else {
+				cylinders[i].setRadius(z_prime, -1.0f, -1.0f);
+			}
 			//		cout << "z_prime: " << z_prime << endl;
 		}
 	}
+
+	for (int i = 0; i < size; i++) {
+		if (isChanged[i]) {
+			adjustCylinder(i);
+			isChanged[i] = false;
+	//		std::cout << cylinders[i].radius << " " << std::endl;
+		}
+	}
+
 
 	if (cut) {
 		generateParticle(glm::vec3(head.h.x, head.h.y, head.h.z));

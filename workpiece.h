@@ -25,10 +25,12 @@ private:
 	glm::vec3 leftCenterPos;
 	float radius;
 	vector<Cylinder> cylinders;
+	vector<bool> isChanged;
 	ParticleSystem ps;
 
 	void loadTexture(unsigned int* texture, std::string path);
 	void generateParticle(glm::vec3 position);
+	void adjustCylinder(int i);
 public:
 	Material sideMaterial, sectionMaterial;
 	Workpiece();

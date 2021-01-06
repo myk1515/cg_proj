@@ -7,6 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
+#include <algorithm>
 
 #include "include/shader.h"
 
@@ -16,6 +17,7 @@ private:
 	glm::mat4 inverseMat;
 	//unsigned int VAO;
 	float vertices[1000];
+	float y_x[1000];
 public:
 	BezierCurve(glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 d);
 	BezierCurve();
@@ -24,6 +26,7 @@ public:
 	void ProcessMouseMovement(float x, float y);
 	void setInverseMat(glm::mat4 inverseMat);
 	glm::vec3 sample(float t);
+	float* sampleAll(float start);
 };
 
 #endif

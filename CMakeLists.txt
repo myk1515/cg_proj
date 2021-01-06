@@ -35,5 +35,5 @@ include_directories(include)
 
 
 set(SOURCE_FILES main.cpp ${GLAD_SRC} )
-add_executable(CG_OpenGL ${SOURCE_FILES} "knife.h" "bezier.h" "cylinder.h" "bezier.cpp" "particle.h" "particle.cpp" "skybox.cpp" "skybox.h" "workpiece.h" "workpiece.cpp" "knife.cpp")
+add_executable(CG_OpenGL ${SOURCE_FILES} "knife.h" "bezier.h" "cylinder.h" "bezier.cpp" "particle.h" "particle.cpp" "skybox.cpp" "skybox.h" "workpiece.h" "workpiece.cpp" "knife.cpp" "wheel.h" "wheel.cpp")
 target_link_libraries(CG_OpenGL ${LIBS})
