@@ -89,7 +89,11 @@ void Workpiece::cut(Head head) {
 		float z_prime;
 		bool collision = false;
 		float cur_x = leftCenterPos.x + interval_d * i;
-		if (p1.x < cur_x && cur_x < h.x) {
+
+		if (cur_x <= h.x && h.x <= cur_x + interval_d) {
+			z_prime = h.z;
+		}
+		else if (p1.x < cur_x && cur_x < h.x) {
 			z_prime = (h.z - p1.z) / (h.x - p1.x) * (cur_x - h.x) + h.z;
 		}
 		else if (h.x < cur_x && cur_x < p2.x) {
@@ -135,4 +139,33 @@ void Workpiece::cut(Head head) {
 	if (cut) {
 		generateParticle(glm::vec3(head.h.x, head.h.y, head.h.z));
 	}
+}
+
+
+void Workpiece::drawOutline(Shader& curveShader) {
+	vector <glm::vec3> vertices;
+
+	int size = cylinders.size();
+	vertices.push_back(leftCenterPos);
+	float x_coords = leftCenterPos.x;
+	for (int i = 0; i < size; i++) {
+		glm::vec3 v1 = glm::vec3(x_coords, cylinders[i].leftRadius, 0.0f);
+		glm::vec3 v2 = glm::vec3(x_coords + interval_d, cylinders[i].rightRadius, 0.0f);
+		vertices.push_back(v1); vertices.push_back(v1);
+		vertices.push_back(v2); vertices.push_back(v2);
+		x_coords += interval_d;
+	}
+	vertices.push_back(leftCenterPos + glm::vec3(length, 0.0f, 0.0f));
+
+	unsigned int outlineVAO, outlineVBO;
+	glGenVertexArrays(1, &outlineVAO);
+	glBindVertexArray(outlineVAO);
+	glGenBuffers(1, &outlineVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, outlineVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	curveShader.use();
+	glBindVertexArray(outlineVAO);
+	glDrawArrays(GL_LINES, 0, vertices.size());
 }

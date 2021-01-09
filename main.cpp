@@ -27,12 +27,14 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
      
 int window_width,window_height;
 bool mouse_press = false;
+bool alt_press = false;
 const float init_radius = 0.5f;
 const float init_length = 5.0f;
 float auto_mode_t = 0.0f;
 std::string material = "wood";
 bool stopRotate = false;
 bool stopAuto = false;
+bool displayControlPoint = true;
 
 const enum work_mode {
 	FREE, DRAW_BEZIER, AUTO, CONSTRAIN
@@ -71,7 +73,7 @@ void drawBezierMode(GLFWwindow* window, Shader& curveShader) {
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	//use
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	
 
 
 	glm::mat4 model = glm::mat4(1.0f);
@@ -86,7 +88,7 @@ void drawBezierMode(GLFWwindow* window, Shader& curveShader) {
 	bezierCurve.setInverseMat(glm::inverse(projection * view * model));
 
 	//draw outline
-	float axis_vertices[] = {
+	/*float axis_vertices[] = {
 		-init_length / 2 - 0.5, 0.0f, 0.0f,
 		init_length / 2 + 0.5, 0.0f, 0.0f,
 		-init_length / 2, 0.0f, 0.0f,
@@ -96,27 +98,37 @@ void drawBezierMode(GLFWwindow* window, Shader& curveShader) {
 		init_length / 2, init_radius, 0.0f,
 		init_length / 2, 0, 0.0f,
 
-	};
+	};*/
+	vector <glm::vec3> axis_vertices;
+	axis_vertices.push_back(glm::vec3(-init_length / 2 - 0.5, 0.0f, 0.0f));
+	axis_vertices.push_back(glm::vec3(init_length / 2 + 0.5, 0.0f, 0.0f));
+
+
+
+
 	unsigned int axis_VAO, axis_VBO;
 	glGenVertexArrays(1, &axis_VAO);
 	glBindVertexArray(axis_VAO);
 	glGenBuffers(1, &axis_VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, axis_VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(axis_vertices), axis_vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * axis_vertices.size(), &axis_vertices[0], GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 	curveShader.use();
 	glBindVertexArray(axis_VAO);
-	glDrawArrays(GL_LINES, 0, 8);
-	bezierCurve.drawPoint(curveShader);
+	glDrawArrays(GL_LINES, 0, 2);
+	if (!alt_press)
+		bezierCurve.drawPoint(curveShader);
 	bezierCurve.drawCurve(curveShader);
+	workpiece.drawOutline(curveShader);
 
 	//symmetry
 	model = glm::rotate(model, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	curveShader.setMat4("model", model);
 	bezierCurve.drawCurve(curveShader);
 	glBindVertexArray(axis_VAO);
-	glDrawArrays(GL_LINES, 0, 8);
+	glDrawArrays(GL_LINES, 0, 2);
+	workpiece.drawOutline(curveShader);
 	
 }
 
@@ -377,10 +389,24 @@ void processInput(GLFWwindow* window)
 			current_mode = CONSTRAIN;
 			auto_mode_t = 0.0f;
 			glm::vec3 start = bezierCurve.sample(0.0f);
-			knife.reset(glm::vec3(-init_length / 2, 0.0f, init_radius));
+		//	knife.reset(glm::vec3(-init_length / 2, 0.0f, init_radius));
 			knife.y_x = bezierCurve.sampleAll(-init_length / 2);
 			knife.isConstrain = true;
 			knife.startx = -init_length / 2;
+		}
+
+
+		if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT_ALT) == GLFW_PRESS) {
+			alt_press = true;
+		}
+		if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_RELEASE && glfwGetKey(window, GLFW_KEY_RIGHT_ALT) == GLFW_RELEASE) {
+			alt_press = false;
+		}
+		if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS) {
+			displayControlPoint = false;
+		}
+		if (glfwGetKey(window, GLFW_KEY_H) == GLFW_RELEASE) {
+			displayControlPoint = true;
 		}
 	}
 }
@@ -419,8 +445,12 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 		}
 	}
 	else if (current_mode == DRAW_BEZIER) {
-		if (mouse_press) {
+		if (mouse_press && !alt_press) {
 			bezierCurve.ProcessMouseMovement(xpos / window_width * 2 - 1.0f, -(ypos / window_height * 2 - 1.0f));
+		}
+		if (mouse_press && alt_press) {
+			bezierCurve.moveAll(xpos / window_width * 2 - 1.0f, -(ypos / window_height * 2 - 1.0f), 
+								lastX / window_width * 2 - 1.0f, -(lastY / window_height * 2 - 1.0f));
 		}
 	}
 

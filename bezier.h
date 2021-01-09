@@ -24,6 +24,7 @@ public:
 	void drawPoint(Shader& shader);
 	void drawCurve(Shader& shader);
 	void ProcessMouseMovement(float x, float y);
+	void moveAll(float x, float y, float lastX, float lastY);
 	void setInverseMat(glm::mat4 inverseMat);
 	glm::vec3 sample(float t);
 	float* sampleAll(float start);

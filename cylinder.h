@@ -60,7 +60,7 @@ public:
 
 	//generate the vertices
 	void setRadius(float radius, float leftRadius, float rightRadius) {
-		int num = 180;
+		int num = 360;
 		if (!uncut) {
 			sideMaterial = sectionMaterial;
 		}

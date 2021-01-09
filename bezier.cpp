@@ -80,10 +80,29 @@ void BezierCurve::ProcessMouseMovement(float x, float y) {
 	//	std::cout << "mousepos " << i << ":" << curPos.x << "," << curPos.y << "," << curPos.z << std::endl;
 	//	std::cout << "pointpos:" << pos.x << "," << pos.y << "," << pos.z << std::endl;
 	//	std::cout << "distance: " << distance << std::endl;
-		if (glm::dot(curPos - pos, curPos - pos) < 1e-2)
+		if (glm::dot(curPos - pos, curPos - pos) < 1e-2) {
 			controlPoints[i] = curPos;
+			break;
+		}
 	}
 }
+
+void BezierCurve::moveAll(float x, float y, float lastX, float lastY) {
+	glm::vec4 mousePos = glm::vec4(x, y, 0.0f, 1.0f);
+	mousePos = inverseMat * mousePos;
+	mousePos = mousePos * 5.0f;
+	glm::vec3 curPos = glm::vec3(mousePos.x, mousePos.y, 0.0f);
+
+	mousePos = glm::vec4(lastX, lastY, 0.0f, 1.0f);
+	mousePos = inverseMat * mousePos;
+	mousePos = mousePos * 5.0f;
+	glm::vec3 lastPos = glm::vec3(mousePos.x, mousePos.y, 0.0f);
+	int size = controlPoints.size();
+	for (int i = 0; i < size; i++) {
+		controlPoints[i] = controlPoints[i] + (curPos - lastPos);
+	}
+}
+
 
 void BezierCurve::setInverseMat(glm::mat4 inverseMat) {
 	this->inverseMat = inverseMat;
@@ -104,19 +123,18 @@ glm::vec3 BezierCurve::sample(float t) {
 
 float* BezierCurve::sampleAll(float start) {
 	for (int i = 0; i < 1000; i++)
-		y_x[i] = -1.0f;
+		y_x[i] = 0.5f;
 	float interval_d = 0.01f;
-	float xpos = start;
-	int i = 0;
 	for (float t = 0.0f; t < 1.0f; t += 0.0001f) {
 		glm::vec3 p = sample(t);
-		if (p.x > start && std::fabs(xpos - p.x) < 1e-2) {
-			if (p.y > 0.5f)
-				y_x[i] = 0.5f;
-			else
-				y_x[i] = p.y;
-			i++; xpos += interval_d;
+		if (p.x < start) {
+			continue;
 		}
+		int i = (int)((p.x - start) / 1e-2);
+		if (p.y > 0.5f)
+			y_x[i] = 0.5f;
+		else
+			y_x[i] = p.y;
 	}
 	for (int i = 0; i < 500; i++)
 		std::cout << y_x[i] << " ";

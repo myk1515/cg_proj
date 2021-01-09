@@ -38,6 +38,8 @@ public:
 	void draw(Shader& workpieceShader, Shader& particleShader);
 
 	void cut(Head head);
+
+	void drawOutline(Shader& curveShader);
 };
 
 
